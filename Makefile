@@ -4,6 +4,7 @@
 
 # Recursive Wildcard (https://stackoverflow.com/questions/2483182/recursive-wildcards-in-gnu-make/18258352#18258352)
 rwildcard=$(foreach d,$(wildcard $(1:=/*)),$(call rwildcard,$d,$2) $(filter $(subst *,%,$2),$d))
+GCCVERSIONLTQ9 := $(shell expr `gcc -dumpversion | cut -f1 -d.` \< 9)
 
 DEBUG ?= true
 BDIR = build
@@ -23,6 +24,11 @@ EXE = $(BIN)/ml
 	CC_DEBUG = -g
 	CC_OPT_FLAGS = -O3 -march=native -fno-tree-pre
 	CC_FLAGS = $(CC_ALL) $(DEPEND_FLAGS) $(if $(filter $(DEBUG), true), $(CC_DEBUG), $(CC_OPT_FLAGS))
+	
+#	Check if GCC is version 9 or greater, and if not, include an additional flag for the filesystem lib
+	ifeq "$(GCCVERSIONLTQ9)" "1"
+    	CC_FLAGS_END += -lstdc++fs
+	endif
 # endif
 
 INC = -Iinc
@@ -42,6 +48,7 @@ OBJS = $(patsubst $(SDIR)/%, $(BDIR)/%, $(_OBJS))	# Create paths for those names
 # $(warning EXE: $(EXE))
 # $(warning DEBUG: $(DEBUG))
 
+
 # Make Rules
 all: clean dir_struct build
 
@@ -52,7 +59,7 @@ rebuild: clean build
 
 # Generate object files
 $(BIN)/%: $(OBJS)
-	$(CC_LINUX)  $(CC_FLAGS) $(OBJS) -o $@
+	$(CC_LINUX) $(CC_FLAGS) $(OBJS) -o $@ $(CC_FLAGS_END)
 
 $(BDIR)/%.o: $(SDIR)/%.cpp
 	mkdir -p $(dir $@)
