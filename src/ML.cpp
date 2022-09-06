@@ -109,9 +109,8 @@ void runTests() {
     // Compare images
     std::cout << "Comparing image 0 to itself (max error): "
               << compareArray<Array3D_fp32>(img, img, dims)
-              << std::endl;
-
-    std::cout << "Comparing image 0 to itself (T/F within epsilon " << EPSILON << "): "
+              << std::endl
+              << "Comparing image 0 to itself (T/F within epsilon " << EPSILON << "): "
               << std::boolalpha
               << compareArrayWithin<Array3D_fp32>(img, img, dims, EPSILON)
               << std::endl;
@@ -124,9 +123,8 @@ void runTests() {
 
     std::cout << "Comparing image 0 to itself (max error): "
               << compareArray<Array3D_fp32>(img, imgCopy, dims)
-              << std::endl;
-
-    std::cout << "Comparing image 0 to itself (T/F within epsilon " << EPSILON << "): "
+              << std::endl
+              << "Comparing image 0 to itself (T/F within epsilon " << EPSILON << "): "
               << std::boolalpha
               << compareArrayWithin<Array3D_fp32>(img, imgCopy, dims, EPSILON)
               << std::endl;

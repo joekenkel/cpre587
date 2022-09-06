@@ -13,7 +13,7 @@ namespace ML {
 
     // --- Data Helper Functions ---
     // Floating Point Compare Epsilon
-    constexpr float EPSILON = 0.0001;
+    constexpr float EPSILON = 0.001;
 
 
     // --- Argument Parsing ---
@@ -198,7 +198,7 @@ namespace ML {
         static_assert(!std::is_pointer<EP_T>(), "Cannot compare with pointer type (arrays) epsilon values");
         // assert(std::rank<T>() == dims.size() && "Array type does not have the same rank as the dims provided");
 
-        return compareArrayWithin<T>(data1, data2, dims.data(), dims.size(), dimIndex);
+        return compareArrayWithin<T, EP_T>(data1, data2, dims.data(), dims.size(), epsilon, dimIndex);
     }
 
     
