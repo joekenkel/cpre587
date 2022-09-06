@@ -154,7 +154,7 @@ namespace ML {
 
         // Recurse as needed into each array
         for (std::size_t i = 0; i < dims[dimIndex]; i++) {
-            if (dimIndex < dimsLen - 2) {
+            if (dimIndex < dimsLen - 1) {
                 // Recurse to compare another dimention down
                 curr_diff = compareArray<T_BASE>(dataCast1[i], dataCast2[i], dims, dimsLen, dimIndex + 1);
             } else {
@@ -198,7 +198,7 @@ namespace ML {
         static_assert(!std::is_pointer<EP_T>(), "Cannot compare with pointer type (arrays) epsilon values");
         // assert(std::rank<T>() == dims.size() && "Array type does not have the same rank as the dims provided");
 
-        return epsilon > compareArrayWithin<T>(data1, data2, dims.data(), dims.size(), dimIndex);
+        return compareArrayWithin<T>(data1, data2, dims.data(), dims.size(), dimIndex);
     }
 
     

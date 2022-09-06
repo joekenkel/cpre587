@@ -167,7 +167,7 @@ namespace ML {
         LayerParams bParams = other.getParams();
 
         // Warn if we are not comparing the same data type
-        if (aParams.elementSize == bParams.elementSize) {
+        if (aParams.elementSize != bParams.elementSize) {
             std::cerr << "Comparison between two LayerData arrays with different element size (and possibly data types) is not advised ("
                         << aParams.elementSize << " and " << bParams.elementSize << ")\n";
         }
@@ -175,7 +175,7 @@ namespace ML {
         
         // Ensure each dimention size matches
         for (std::size_t i = 0; i < aParams.dims.size(); i++) {
-            assert(aParams.dims[i] == bParams.dims[i] && "LayerData arrays must have the same size dimentions");
+            assert(aParams.dims[i] == bParams.dims[i] && "LayerData arrays must have the same size dimentions to be compared");
         }
 
         return compareArray<T>(getData<T>(), other.getData<T>(), aParams.dims);

@@ -1,4 +1,0 @@
-Number		Dims		Class Data
-0		(64, 64, 3)		b'wok' (class index: 95 - id: b'n04596742')
-1		(64, 64, 3)		b"potter's wheel" (class index: 96 - id: b'n03992509')
-2		(64, 64, 3)		b'nail' (class index: 29 - id: b'n03804744')

@@ -102,7 +102,7 @@ void runTests() {
     std::cout << "\n--- Running Some Tests ---" << std::endl;
 
     // Load an image
-    fs::path imgPath("./data/image_0_test.bin");
+    fs::path imgPath("./data/image_0.bin");
     dimVec dims = {64, 64, 3};
     Array3D_fp32 img = loadArray<Array3D_fp32>(imgPath, dims);
 
@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
     Args& args = Args::getInst();
     args.parseArgs(argc, argv);
 
-    // Run some framework tests
+    // Run some framework tests as an example of loading data
     runTests();
 
     // Base input data path (determined from current directory of where you are running the command)
@@ -156,8 +156,9 @@ int main(int argc, char **argv) {
     // Load an image
     std::cout << "\n--- Running Infrence ---" << std::endl;
     dimVec dims = {64, 64, 3};
+    
     // Construct a LayerData object from a LayerParams one
-    LayerData img( {sizeof(fp32), dims, basePath / "image_0_test.bin"} );
+    LayerData img( {sizeof(fp32), dims, basePath / "image_0.bin"} );
     img.loadData<Array3D_fp32>();
 
     // Run infrence on the model
@@ -165,13 +166,14 @@ int main(int argc, char **argv) {
 
     // Compare the output
     std::cout << "\n--- Comparing The Output ---" << std::endl;
+
     // Construct a LayerData object from a LayerParams one
-    LayerData expected( {sizeof(fp32), {60, 60, 32}, basePath / "test_input_0" / "layer_0_output.bin"} );
-    img.loadData<Array3D_fp32>();
-    // std::cout << "Comparing expected output to model output (max error / T/F within epsilon " << EPSILON << "): "
-            //   << output.compare<Array3D<fp32>>(img) << " / "
-            //   << output.compareWithin<Array3D<fp32>>(img, EPSILON)
-            //   << std::endl;
+    LayerData expected( { sizeof(fp32), {60, 60, 32}, basePath / "image_0_data" / "layer_0_output.bin" } );
+    expected.loadData<Array3D_fp32>();
+    std::cout << "Comparing expected output to model output (max error / T/F within epsilon " << EPSILON << "): \n\t"
+              << expected.compare<Array3D<fp32>>(output) << " / "
+              << std::boolalpha << bool(expected.compareWithin<Array3D<fp32>>(output, EPSILON))
+              << std::endl;
 
     // Clean up
     model.freeLayers<fp32>();
