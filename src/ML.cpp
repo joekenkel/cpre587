@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
     std::cout << "\n--- Running Infrence ---" << std::endl;
     dimVec dims = {64, 64, 3};
     // Construct a LayerData object from a LayerParams one
-    LayerData img( {sizeof(Array3D_fp32), dims, basePath / "image_0_test.bin"} );
+    LayerData img( {sizeof(fp32), dims, basePath / "image_0_test.bin"} );
     img.loadData<Array3D_fp32>();
 
     // Run infrence on the model
@@ -168,10 +168,10 @@ int main(int argc, char **argv) {
     // Construct a LayerData object from a LayerParams one
     LayerData expected( {sizeof(fp32), {60, 60, 32}, basePath / "test_input_0" / "layer_0_output.bin"} );
     img.loadData<Array3D_fp32>();
-    std::cout << "Comparing expected output to model output (max error / T/F within epsilon " << EPSILON << "): "
-              << output.compare<Array3D<fp32>>(img) << " / "
-              << output.compareWithin<Array3D<fp32>>(img, EPSILON)
-              << std::endl;
+    // std::cout << "Comparing expected output to model output (max error / T/F within epsilon " << EPSILON << "): "
+            //   << output.compare<Array3D<fp32>>(img) << " / "
+            //   << output.compareWithin<Array3D<fp32>>(img, EPSILON)
+            //   << std::endl;
 
     // Clean up
     model.freeLayers<fp32>();

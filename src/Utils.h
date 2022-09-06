@@ -78,17 +78,24 @@ namespace ML {
     template<typename T_BASE>
     T_BASE* allocArray(const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
         static_assert(!std::is_pointer<T_BASE>(), "Cannot allocate pointer type values (arrays)");
-        T_BASE** data = new T_BASE*[dims[dimIndex]];
+        
+        // Recursively allocate multidimentional arrays
+        if (dimsLen > 1) {
+            T_BASE** data = new T_BASE*[dims[dimIndex]];
 
-        for (std::size_t i = 0; i < dims[dimIndex]; i++) {
-            if (dimIndex < (dimsLen - 1)) {
-                data[i] = allocArray<T_BASE>(dims, dimsLen, dimIndex + 1);
-            } else {
-                data[i] = 0;
+            for (std::size_t i = 0; i < dims[dimIndex]; i++) {
+                if (dimIndex < (dimsLen - 1)) {
+                    data[i] = allocArray<T_BASE>(dims, dimsLen, dimIndex + 1);
+                } else {
+                    data[i] = 0;
+                }
             }
-        }
 
-        return reinterpret_cast<T_BASE*>(data);
+            return reinterpret_cast<T_BASE*>(data);
+        // Handle 1D arrays gracefully
+        } else {
+            return new T_BASE[dims[dimIndex]];
+        }
     }
 
     // Take a vector of dims, takes the final array type as a template
@@ -106,14 +113,21 @@ namespace ML {
     template<typename T_BASE>
     void freeArray(T_BASE* data, const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
         static_assert(!std::is_pointer<T_BASE>(), "Cannot deallocate non-pointer values (arrays)");
-        T_BASE** dataCast = reinterpret_cast<T_BASE**>(data);
-
-        for (std::size_t i = 0; i < dims[dimIndex]; i++) {
-            if (dimIndex < dimsLen - 2) {
-                freeArray<T_BASE>(dataCast[i], dims, dimsLen, dimIndex + 1);
-            } else { 
-                delete [] dataCast[i];
+        
+        // Recursively free the multidimentional array as needed
+        if (dimsLen > 1) {
+            T_BASE** dataCast = reinterpret_cast<T_BASE**>(data);
+            
+            for (std::size_t i = 0; i < dims[dimIndex]; i++) {
+                if (dimIndex < dimsLen - 2) {
+                    freeArray<T_BASE>(dataCast[i], dims, dimsLen, dimIndex + 1);
+                } else { 
+                    delete [] dataCast[i];
+                }
             }
+        // Handle 1D Arrays
+        } else {
+            delete [] data;
         }
     }
 
@@ -193,14 +207,23 @@ namespace ML {
     template<typename T_BASE>
     void loadArrayData(std::ifstream& file, T_BASE* values, const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
         static_assert(!std::is_pointer<T_BASE>(), "Cannot load pointer type values (arrays)");
-        T_BASE** valuesCast = reinterpret_cast<T_BASE**>(values);
 
         // Read the values and recurse if needed
-        for (std::size_t i = 0; i < dims[dimIndex]; i++) {
-            if (dimIndex < dimsLen - 2) {
-                // We do not care about the data pointer returned here since we have that already stored in a array
-                loadArrayData<T_BASE>(file, valuesCast[i], dims, dimsLen, dimIndex + 1);
-            } else if (!file.read(reinterpret_cast<char*>(valuesCast[i]), sizeof(T_BASE) * dims[dimIndex + 1])) { // Read our values
+        if (dimsLen > 1) {
+            T_BASE** valuesCast = reinterpret_cast<T_BASE**>(values);
+
+            for (std::size_t i = 0; i < dims[dimIndex]; i++) {
+                if (dimIndex < dimsLen - 2) {
+                    // We do not care about the data pointer returned here since we have that already stored in a array
+                    loadArrayData<T_BASE>(file, valuesCast[i], dims, dimsLen, dimIndex + 1);
+                } else if (!file.read(reinterpret_cast<char*>(valuesCast[i]), sizeof(T_BASE) * dims[dimIndex + 1])) { // Read our values
+                    std::cerr << "Failed to read data values from file" << std::endl;
+                    assert(false && "Failed to read file data");
+                }
+            }
+        // Handle 1D Arrays
+        } else {
+            if (!file.read(reinterpret_cast<char*>(values), sizeof(T_BASE) * dims[dimIndex])) { // Read our values
                 std::cerr << "Failed to read data values from file" << std::endl;
                 assert(false && "Failed to read file data");
             }

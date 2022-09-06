@@ -124,7 +124,7 @@ namespace ML {
     // Allocate data values
     template<typename T>
     void LayerData::allocData() {
-        if (data == nullptr && !alloced) {
+        if (!alloced) {
             data = reinterpret_cast<void*>(allocArray<T>(params.dims));
             alloced = true;
         } else {
@@ -139,18 +139,19 @@ namespace ML {
         assert(!params.filePath.empty() && "No file path given for required layer data to load from");
 
         // If it has already been allocated, free it
-        if (data != nullptr || alloced) {
+        if (alloced) {
             freeData<T>();
         } 
 
         // Load our values
         data = reinterpret_cast<void*>(loadArray<T>(params.filePath, params.dims));
+        alloced = true;
     }
 
     // Clean up data values
     template<typename T>
     void LayerData::freeData() {
-        if (data != nullptr && alloced) {
+        if (alloced) {
             freeArray<T>(reinterpret_cast<T>(data), params.dims);
             data = nullptr;
             alloced = false;
