@@ -19,7 +19,7 @@ EXE = $(BIN)/ml
 # else # Linux
 	CC_LINUX = g++ 
 	CC_WIN = x86_64-w64-mingw32-g++ -static-libgcc -static-libstdc++ -fstack-protector
-	CC_ALL = -lstdc++ -Wall -std=c++17 -fpermissive
+	CC_ALL = -lstdc++ -Wall -std=c++17
 	CC_DEBUG = -g
 	CC_OPT_FLAGS = -O3 -march=native -fno-tree-pre
 	CC_FLAGS = $(CC_ALL) $(DEPEND_FLAGS) $(if $(filter $(DEBUG), true), $(CC_DEBUG), $(CC_OPT_FLAGS))

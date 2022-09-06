@@ -16,18 +16,24 @@ namespace fs = std::filesystem;
 using namespace ML;
 
 // Build our ML toy model
-Model buildToyModel(const fs::path modelDataPath) {
+Model buildToyModel(const fs::path modelPath) {
     Model model;
+    std::cout << "\n--- Building Toy Model ---" << std::endl;
 
     // --- Conv 0: L0 ---
     // Input shape: 64x64x3
     // Output shape: 60x60x32
-    LayerParams conv1_inDataParam = getParams<fp32, 64, 64, 3>();
-    LayerParams conv1_outDataParam = getParams<fp32, 60, 60, 32>();
-    LayerParams conv1_weightParam = getParams<fp32, 5, 5, 3, 32>();
-    LayerParams conv1_biasParam = getParams<fp32, 32>();
-    ConvolutionalLayer conv1(conv1_inDataParam, conv1_outDataParam, conv1_weightParam, conv1_biasParam);
-    model.addLayer(&conv1);
+    // LayerParams conv1_inDataParam = getParams<fp32, "", 64, 64, 3>();
+    // LayerParams conv1_outDataParam = getParams<fp32, "", 60, 60, 32>();
+    // LayerParams conv1_weightParam = getParams<fp32, "", 5, 5, 3, 32>();
+    // LayerParams conv1_biasParam = getParams<fp32, "", 32>();
+    LayerParams conv1_inDataParam(sizeof(fp32), {64, 64, 3});
+    LayerParams conv1_outDataParam(sizeof(fp32), {60, 60, 32});
+    LayerParams conv1_weightParam(sizeof(fp32), {5, 5, 3, 32}, modelPath / "conv1_weights.bin");
+    LayerParams conv1_biasParam(sizeof(fp32), {32}, modelPath / "conv1_biases.bin");
+
+    ConvolutionalLayer* conv1 = new ConvolutionalLayer(conv1_inDataParam, conv1_outDataParam, conv1_weightParam, conv1_biasParam);
+    model.addLayer(conv1);
 
     // --- Conv 1: L1 ---
     // Input shape: 60x60x32
@@ -88,23 +94,47 @@ Model buildToyModel(const fs::path modelDataPath) {
     // Input shape: 200
     // Output shape: 200
 
-    model.allocLayers<fp32>();
     return model;
 }
 
 
 void runTests() {
+    std::cout << "\n--- Running Some Tests ---" << std::endl;
+
     // Load an image
-    // fs::path imgPath("../data/image_0.bin");
-    fs::path imgPath("/mnt/c/Users/mluck/git/cpre-487-587-solutions/Labs/2/data/image_0.bin");
-    Array3D<fp32> img = loadArray<Array3D<fp32>>(imgPath, {64, 64, 3});
+    fs::path imgPath("./data/image_0_test.bin");
+    dimVec dims = {64, 64, 3};
+    Array3D_fp32 img = loadArray<Array3D_fp32>(imgPath, dims);
 
-    std::cout << "Comparing image 0 to itself: "
-              << compare<Array3D<fp32>>(img, img, {64, 64, 3}) << std::endl;
+    // Compare images
+    std::cout << "Comparing image 0 to itself (max error): "
+              << compareArray<Array3D_fp32>(img, img, dims)
+              << std::endl;
 
-    std::cout << "Comparing image 0 to itself (epsilon): "
-              << compareWithin<Array3D<fp32>>(img, img, {64, 64, 3}, EPSILON) << std::endl;
+    std::cout << "Comparing image 0 to itself (T/F within epsilon " << EPSILON << "): "
+              << std::boolalpha
+              << compareArrayWithin<Array3D_fp32>(img, img, dims, EPSILON)
+              << std::endl;
 
+    // Test again with a modified copy
+    std::cout << "\nChange a value by 1.0 and compare again" << std::endl;
+    Array3D_fp32 imgCopy = allocArray<Array3D_fp32>(dims);
+    copyArray<Array3D_fp32>(img, imgCopy, dims);
+    imgCopy[0][0][0] += 1.0;
+
+    std::cout << "Comparing image 0 to itself (max error): "
+              << compareArray<Array3D_fp32>(img, imgCopy, dims)
+              << std::endl;
+
+    std::cout << "Comparing image 0 to itself (T/F within epsilon " << EPSILON << "): "
+              << std::boolalpha
+              << compareArrayWithin<Array3D_fp32>(img, imgCopy, dims, EPSILON)
+              << std::endl;
+
+
+    // Clean up after ourselves
+    freeArray<Array3D_fp32>(img, dims);
+    freeArray<Array3D_fp32>(imgCopy, dims);
 }
 
 
@@ -116,17 +146,35 @@ int main(int argc, char **argv) {
     // Run some framework tests
     runTests();
 
-    // Base input data path
-    fs::path basePath("../data");
-    fs::path testImg1Path = basePath / "image_0.bin";
-    fs::path testImg1OutputBase = basePath / "test_input_0";
+    // Base input data path (determined from current directory of where you are running the command)
+    fs::path basePath("./data");
 
     // Build the model and allocate the buffers
-    Model model = buildToyModel("../data/model");
+    Model model = buildToyModel(basePath / "model");
     model.allocLayers<fp32>();
 
+    // Load an image
+    std::cout << "\n--- Running Infrence ---" << std::endl;
+    dimVec dims = {64, 64, 3};
+    // Construct a LayerData object from a LayerParams one
+    LayerData img( {sizeof(Array3D_fp32), dims, basePath / "image_0_test.bin"} );
+    img.loadData<Array3D_fp32>();
+
+    // Run infrence on the model
+    const LayerData output = model.infrence(img, Layer::InfType::NAIVE);
+
+    // Compare the output
+    std::cout << "\n--- Comparing The Output ---" << std::endl;
+    // Construct a LayerData object from a LayerParams one
+    LayerData expected( {sizeof(fp32), {60, 60, 32}, basePath / "test_input_0" / "layer_0_output.bin"} );
+    img.loadData<Array3D_fp32>();
+    std::cout << "Comparing expected output to model output (max error / T/F within epsilon " << EPSILON << "): "
+              << output.compare<Array3D<fp32>>(img) << " / "
+              << output.compareWithin<Array3D<fp32>>(img, EPSILON)
+              << std::endl;
+
     // Clean up
-    model.clearLayers<fp32>();
+    model.freeLayers<fp32>();
 
     return 0;
 }

@@ -7,6 +7,9 @@
 namespace ML {
 
     // --- Data Types ---
+    using size = std::size_t;
+    using dimVec = std::vector<std::size_t>;
+
     // Signed int
     using i8 = std::int8_t;
     using i16 = std::int16_t;

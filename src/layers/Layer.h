@@ -22,14 +22,6 @@ namespace ML {
     };
 
 
-    // Layer Params factory function
-    template<typename T, std::size_t D0, std::size_t... D>
-    inline constexpr LayerParams getParams() {
-        return LayerParams(sizeof(T), {D0, D...});
-    }
-
-
-
     // Output data container of a layer infrence
     class LayerData {
         public:
@@ -42,11 +34,15 @@ namespace ML {
 
             // Get the data pointer and cast it
             template<typename T>
-            T getData() const { return (T) data; }
+            T getData() const { return reinterpret_cast<T>(data); }
 
             // Allocate data values
             template<typename T>
             inline void allocData();
+
+            // Load data values
+            template<typename T>
+            inline void loadData();
 
             // Clean up data values
             template<typename T>
@@ -54,7 +50,11 @@ namespace ML {
 
             // Get the max difference between two Layer Data arrays
             template<typename T>
-            float compare(const LayerData& other, const std::size_t dimIndex = 0);
+            float compare(const LayerData& other) const;
+
+            // Compare within an Epsilon to ensure layer datas are similar within reason
+            template<typename T, typename T_EP = float>
+            float compareWithin(const LayerData& other, const T_EP epsilon = EPSILON) const;
 
         private:
             LayerParams params;
@@ -81,13 +81,14 @@ namespace ML {
                 CONVOLUTIONAL,
                 DENSE,
                 SOFTMAX,
-                MAX_POLLING
+                MAX_POOLING
             };
         
         public:
             // Contructors        
-            Layer(const LayerParams &inParams, const LayerParams &outParams, LayerType lType)
+            Layer(const LayerParams inParams, const LayerParams outParams, LayerType lType)
                 : inParams(inParams), outParams(outParams), outData(outParams), lType(lType) {}
+            virtual ~Layer() {}
 
             // Getter Functions
             const LayerParams& getInputParams() const { return inParams; }
@@ -124,18 +125,33 @@ namespace ML {
     template<typename T>
     void LayerData::allocData() {
         if (data == nullptr && !alloced) {
-            arrayAlloc<T>(data, params.dims);
+            data = reinterpret_cast<void*>(allocArray<T>(params.dims));
             alloced = true;
         } else {
             assert(false && "Cannot allocate a data pointer that has not been allocated (LayerData)");
         }
     }
 
+    // Load data values
+    template<typename T>
+    inline void LayerData::loadData() {
+        // Ensure a file path to load data from has been given
+        assert(!params.filePath.empty() && "No file path given for required layer data to load from");
+
+        // If it has already been allocated, free it
+        if (data != nullptr || alloced) {
+            freeData<T>();
+        } 
+
+        // Load our values
+        data = reinterpret_cast<void*>(loadArray<T>(params.filePath, params.dims));
+    }
+
     // Clean up data values
     template<typename T>
     void LayerData::freeData() {
         if (data != nullptr && alloced) {
-            arrayFree<T>(data, params.dims);
+            freeArray<T>(reinterpret_cast<T>(data), params.dims);
             data = nullptr;
             alloced = false;
         } else {
@@ -145,7 +161,7 @@ namespace ML {
 
     // Get the max difference between two Layer Data arrays
     template<typename T>
-    float LayerData::compare(const LayerData& other, const std::size_t dimIndex) {
+    float LayerData::compare(const LayerData& other) const {
         LayerParams aParams = getParams();
         LayerParams bParams = other.getParams();
 
@@ -157,11 +173,17 @@ namespace ML {
         assert(aParams.dims.size() == bParams.dims.size() && "LayerData arrays must have the same number of dimentions");
         
         // Ensure each dimention size matches
-        for (std::size_t size : aParams.dims) {
-            assert(size == bParams.dims.size() && "LayerData arrays must have the same size dimentions");
+        for (std::size_t i = 0; i < aParams.dims.size(); i++) {
+            assert(aParams.dims[i] == bParams.dims[i] && "LayerData arrays must have the same size dimentions");
         }
 
-        return compare<T>(getData<T>(), other.getData<T>(), aParams.dims.data(), aParams.dims.size());
+        return compareArray<T>(getData<T>(), other.getData<T>(), aParams.dims);
+    }
+
+    // Compare within an Epsilon to ensure layer datas are similar within reason
+    template<typename T, typename T_EP = float>
+    float LayerData::compareWithin(const LayerData& other, const T_EP epsilon) const {
+        return epsilon < compare<T>(other);
     }
 
     // Allocate the layer output buffer

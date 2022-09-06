@@ -57,97 +57,98 @@ namespace ML {
             struct arguments _args;
     };
 
+    // Metaprogramming type helpers
+    template <typename T> struct remove_all_pointers{
+        typedef T type;
+    };
 
-// --- Implmentation ---
+    template <typename T> struct remove_all_pointers<T*>{
+        typedef typename remove_all_pointers<T>::type type;
+    };
+
+
+    // --- Implmentation ---
 
     // --- Data Helper Functions ---
     // Type cast helpers
-    // template<typename T>
-    // inline T castData(const void* data) { return (T) data; }
-
-    // Data array allocation helpers
-    // Take a raw array of dims
     template<typename T>
-    void arrayAlloc(T data, const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
-        // static_assert(std::is_pointer<T>(), "Cannot allocate non-pointer values (arrays)");
-        typedef typename std::remove_pointer<typename std::remove_pointer<T>::type>::type* T_CLEAN;
-        void** dataV = (void*) data;
-        dataV = malloc(sizeof(void**) * dims[dimIndex]);
-        // data = new T_CLEAN[dims[dimIndex]];
-        // data = new typename std::remove_pointer<T>::type[dims[dimIndex]];
-        // data = (T) new typename std::remove_all_extents<T>::type[dims[dimIndex]];
-        // data = new void*[dims[dimIndex]];
+    inline T castData(const void* data) { return (T) data; }
 
-
+    // Recursive allocator, takes a raw array of dimentsions and the base type for allocation
+    template<typename T_BASE>
+    T_BASE* allocArray(const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
+        static_assert(!std::is_pointer<T_BASE>(), "Cannot allocate pointer type values (arrays)");
+        T_BASE** data = new T_BASE*[dims[dimIndex]];
 
         for (std::size_t i = 0; i < dims[dimIndex]; i++) {
-            if (dimIndex < (dimsLen - 2)) {
-                // arrayAlloc<T_CLEAN>((T_CLEAN) data[i], dims, dimsLen, dimIndex + 1);
-                arrayAlloc<T_CLEAN>((T_CLEAN) dataV[i], dims, dimsLen, dimIndex + 1);
-                // arrayAlloc<typename std::remove_pointer<T>::type>(data[i], dims, dimsLen, dimIndex + 1);
-                // arrayAlloc<typename std::remove_extent <T>::type>(data[i], dims, dimsLen, dimIndex + 1);
-                //arrayAlloc<T>(data[i], dims, dimsLen, dimIndex + 1);
-            } 
-            else {
-                // typedef typename std::decay<T>::type T_DECAY;
-                // static_cast<T_DECAY>(data)[i] = new T_DECAY[dims[dimIndex]];
-                // data[i] = 0;
-                dataV[i] = 0;
+            if (dimIndex < (dimsLen - 1)) {
+                data[i] = allocArray<T_BASE>(dims, dimsLen, dimIndex + 1);
+            } else {
+                data[i] = 0;
             }
         }
+
+        return reinterpret_cast<T_BASE*>(data);
     }
 
-    // Take a vector of dims
+    // Take a vector of dims, takes the final array type as a template
     template<typename T>
-    inline void arrayAlloc(T data, const std::vector<std::size_t>& dims, const std::size_t dimIndex = 0) {
+    inline T allocArray(const std::vector<std::size_t>& dims, const std::size_t dimIndex = 0) {
         static_assert(std::is_pointer<T>(), "Cannot allocate non-pointer values (arrays)");
-        arrayAlloc<T>(data, dims.data(), dims.size(), dimIndex);
+        // assert(std::rank<T>() == dims.size() && "Array type does not have the same rank as the dims provided");
+        
+        typedef typename remove_all_pointers<T>::type T_BASE;
+        return reinterpret_cast<T>(allocArray<T_BASE>(dims.data(), dims.size(), dimIndex));
     }
 
-    // Data array deallocation helpers
-    // Take a raw array of dims
-    template<typename T>
-    void arrayFree(T data, const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
-        // static_assert(std::is_pointer<T>(), "Cannot deallocate non-pointer values (arrays)");
-        typedef typename std::remove_pointer<typename std::remove_pointer<T>::type>::type* T_CLEAN;
-        void** dataV = (void*) data;
-        
+
+    // --- Data array deallocation helpers ---
+    template<typename T_BASE>
+    void freeArray(T_BASE* data, const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
+        static_assert(!std::is_pointer<T_BASE>(), "Cannot deallocate non-pointer values (arrays)");
+        T_BASE** dataCast = reinterpret_cast<T_BASE**>(data);
+
         for (std::size_t i = 0; i < dims[dimIndex]; i++) {
             if (dimIndex < dimsLen - 2) {
-                arrayFree<T_CLEAN>((T_CLEAN) dataV[i], dims, dimsLen, dimIndex + 1);
+                freeArray<T_BASE>(dataCast[i], dims, dimsLen, dimIndex + 1);
             } else { 
-                delete [] dataV[i];
+                delete [] dataCast[i];
             }
         }
     }
 
     // Take a vector of dims
     template<typename T>
-    inline void arrayFree(T data, const std::vector<std::size_t>& dims, const std::size_t dimIndex = 0) {
+    inline void freeArray(T data, const std::vector<std::size_t>& dims, const std::size_t dimIndex = 0) {
         static_assert(std::is_pointer<T>(), "Cannot deallocate non-pointer values (arrays)");
-        arrayFree<T>(data, dims.data(), dims.size(), dimIndex);
+        // assert(std::rank<T>() == dims.size() && "Array type does not have the same rank as the dims provided");
+
+        typedef typename remove_all_pointers<T>::type T_BASE;
+        freeArray<T_BASE>(reinterpret_cast<T_BASE*>(data), dims.data(), dims.size(), dimIndex);
     }
 
 
     // --- Compare Functions ---
-    // Compares two LayerData arrays of size N and returns the maximum difference
-    template<typename T>
-    float compare(const T data1, const T data2, const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
-        // static_assert(std::is_pointer<T>(), "Cannot compare non-pointer values (arrays)");
-        typedef typename std::remove_pointer<typename std::remove_pointer<T>::type>::type* T_CLEAN;
-        void** dataV1 = (void*) data1;
-        void** dataV2 = (void*) data2;
+    // Primary base compare function. Calls itself recursively as it decends structure
+    template<typename T_BASE>
+    float compareArray(const T_BASE* data1, const T_BASE* data2, const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
+        static_assert(!std::is_pointer<T_BASE>(), "Cannot compare pointer type values (arrays)");
         double curr_diff = 0.0;
         double max_diff = 0.0;
+        const T_BASE** dataCast1 = reinterpret_cast<const T_BASE**>(const_cast<T_BASE*>(data1));
+        const T_BASE** dataCast2 = reinterpret_cast<const T_BASE**>(const_cast<T_BASE*>(data2));
 
+        // Recurse as needed into each array
         for (std::size_t i = 0; i < dims[dimIndex]; i++) {
             if (dimIndex < dimsLen - 2) {
-                // curr_diff = compare<typename std::remove_pointer<T>::type>(data1[i], data2[i], dims, dimsLen, dimIndex + 1);
-                curr_diff = compare<T_CLEAN>((T_CLEAN) dataV1[i], (T_CLEAN) dataV2[i], dims, dimsLen, dimIndex + 1);
-            } else { 
+                // Recurse to compare another dimention down
+                curr_diff = compareArray<T_BASE>(dataCast1[i], dataCast2[i], dims, dimsLen, dimIndex + 1);
+            } else {
+                // Check the values and get their absolute difference
                 curr_diff = abs(data1[i] - data2[i]);
             }
 
+            // Update our max difference if it is larger
             if (curr_diff > max_diff) {
                 max_diff = curr_diff;
             }
@@ -155,69 +156,109 @@ namespace ML {
 
         return max_diff;
     }
-    
+
+
     // Compares two LayerData arrays of size N and returns the maximum difference
     template<typename T>
-    inline float compare(const T data1, const T data2, const std::vector<std::size_t> dims, const std::size_t dimIndex = 0) {
-        return compare<T>(data1, data2, dims.data(), dims.size(), dimIndex);
+    inline float compareArray(const T data1, const T data2, const std::vector<std::size_t>& dims, const std::size_t dimIndex = 0) {
+        // assert(std::rank<T>() == dims.size() && "Array type does not have the same rank as the dims provided");
+        
+        typedef typename remove_all_pointers<T>::type T_BASE;
+        return compareArray<T_BASE>(reinterpret_cast<T_BASE*>(data1), reinterpret_cast<T_BASE*>(data2), dims.data(), dims.size(), dimIndex);
     }
 
 
     // Performs a compare operation and checks if the max difference is within the provided epsilon
-    template<typename T>
-    inline bool compareWithin(const T data1, const T data2, const std::size_t* dims, const std::size_t dimsLen, float epsilon, const std::size_t dimIndex = 0) {
-        return epsilon > compare<T>(data1, data2, dims, dimsLen, dimIndex);
+    template<typename T, typename EP_T = float>
+    inline bool compareArrayWithin(const T data1, const T data2, const std::size_t* dims, const std::size_t dimsLen, EP_T epsilon, const std::size_t dimIndex = 0) {
+        static_assert(!std::is_pointer<EP_T>(), "Cannot compare with pointer type (arrays) epsilon values");
+        // assert(std::rank<T>() == dimsLen && "Array type does not have the same rank as the dims provided");
+
+        typedef typename remove_all_pointers<T>::type T_BASE;
+        return epsilon > compareArray<T_BASE>(reinterpret_cast<T_BASE*>(data1), reinterpret_cast<T_BASE*>(data2), dims, dimsLen, dimIndex);
     }
 
     // Performs a compare operation and checks if the max difference is within the provided epsilon
-    template<typename T>
-    inline bool compareWithin(const T data1, const T data2, const std::vector<std::size_t> dims, float epsilon, const std::size_t dimIndex = 0) {
-        return epsilon > compareWithin<T>(data1, data2, dims.data(), dims.size(), dimIndex);
+    template<typename T, typename EP_T = float>
+    inline bool compareArrayWithin(const T data1, const T data2, const std::vector<std::size_t>& dims, EP_T epsilon, const std::size_t dimIndex = 0) {
+        static_assert(!std::is_pointer<EP_T>(), "Cannot compare with pointer type (arrays) epsilon values");
+        // assert(std::rank<T>() == dims.size() && "Array type does not have the same rank as the dims provided");
+
+        return epsilon > compareArrayWithin<T>(data1, data2, dims.data(), dims.size(), dimIndex);
     }
 
     
     // --- File Data Loading ---
-    // Recurrsive file data loading function for filling an allocated array with data from a file
-    template<typename T>
-    T loadArrayData(std::ifstream& file, T values, const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
-        // static_assert(std::is_pointer<T>(), "Cannot load non-pointer values (arrays)");
-        typedef typename std::remove_pointer<typename std::remove_pointer<T>::type>::type* T_CLEAN;
-        void** valuesV = (void*) values;
+    // Recursive array loading function that can load an array of data from multiple dimentions from a binary file
+    template<typename T_BASE>
+    void loadArrayData(std::ifstream& file, T_BASE* values, const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
+        static_assert(!std::is_pointer<T_BASE>(), "Cannot load pointer type values (arrays)");
+        T_BASE** valuesCast = reinterpret_cast<T_BASE**>(values);
 
         // Read the values and recurse if needed
         for (std::size_t i = 0; i < dims[dimIndex]; i++) {
             if (dimIndex < dimsLen - 2) {
                 // We do not care about the data pointer returned here since we have that already stored in a array
-                // typedef typename std::remove_pointer<T>::type T_NEXT;
-                // loadArrayData<T_CLEAN>(file, values[i], dims, dimsLen, dimIndex + 1);
-                loadArrayData<T_CLEAN>(file, (T_CLEAN) valuesV[i], dims, dimsLen, dimIndex + 1);
-            // } else if (!file.read(reinterpret_cast<char*>(&values), sizeof(std::decay_t<T>) * dims[dimIndex])) { // Read our values
-            } else if (!file.read(reinterpret_cast<char*>(valuesV), sizeof(std::decay_t<T>) * dims[dimIndex])) { // Read our values
+                loadArrayData<T_BASE>(file, valuesCast[i], dims, dimsLen, dimIndex + 1);
+            } else if (!file.read(reinterpret_cast<char*>(valuesCast[i]), sizeof(T_BASE) * dims[dimIndex + 1])) { // Read our values
                 std::cerr << "Failed to read data values from file" << std::endl;
+                assert(false && "Failed to read file data");
             }
         }
-
-        return values;
     }
+
 
     // Entry point to loading data from a binary file into an array
     template<typename T>
     T loadArray(const std::filesystem::path& filepath, const std::vector<std::size_t>& dims) {
         static_assert(std::is_pointer<T>(), "Cannot load non-pointer values (arrays)");
-        std::ifstream file(filepath, std::ios::binary); // Create and open our file
+        // assert(std::rank<T>() == dims.size() && "Array type does not have the same rank as the dims provided");
         
-        if (!file.is_open()) {
-            std::cerr << "Failed to open binary file " << filepath << std::endl; 
+        // Open our file and check for issues
+        std::ifstream file(filepath, std::ios::binary); // Create and open our file
+        if (file.is_open()) {
+            std::cout << "Opening binary file " << filepath << std::endl;
         } else {
-            std::cout << "Reading data from binary file " << filepath << std::endl;
+            std::cerr << "Failed to open binary file " << filepath << std::endl;
         }
 
-        // Allocate our arrays
-        T values;
-        arrayAlloc<std::decay_t<T>>(values, dims.data(), dims.size(), 0);
+        // Allocate our array
+        T values = allocArray<T>(dims);
 
         // Load the data
-        return loadArrayData<T>(file, values, dims.data(), dims.size(), 0);
+        typedef typename remove_all_pointers<T>::type T_BASE;
+        loadArrayData<T_BASE>(file, reinterpret_cast<T_BASE*>(values), dims.data(), dims.size());
+        return values;
+    }
+
+    // --- Copy Helpers ---
+    // Deep copy an array by allocating a new one of the same size and recursively copying values
+    template<typename T_BASE>
+    void copyArray(const T_BASE* array, T_BASE* newArray, const std::size_t* dims, const std::size_t dimsLen, const std::size_t dimIndex = 0) {
+        static_assert(!std::is_pointer<T_BASE>(), "Cannot copy pointer type values (arrays)");
+        const T_BASE** arrayCast = reinterpret_cast<const T_BASE**>(const_cast<T_BASE*>(array));
+        T_BASE** newArrayCast = reinterpret_cast<T_BASE**>(newArray);
+
+        // Copy each value
+        for (std::size_t i = 0; i < dims[dimIndex]; i++) {
+            if (dimIndex < (dimsLen - 1)) {
+                copyArray<T_BASE>(arrayCast[i], newArrayCast[i], dims, dimsLen, dimIndex + 1);
+            } else {
+                newArray[i] = array[i];
+            }
+        }
+    }
+
+
+    // Create a copy of an array, allocate a new array and recurse all values
+    // Entry point
+    template<typename T>
+    inline void copyArray(const T array, T newArray, const std::vector<std::size_t>& dims) {
+        static_assert(std::is_pointer<T>(), "Cannot copy non-pointer type values (arrays)");
+        // assert(std::rank<T>() == dims.size() && "Array type does not have the same rank as the dims provided");
+
+        typedef typename remove_all_pointers<T>::type T_BASE;
+        copyArray<T_BASE>(reinterpret_cast<T_BASE*>(array), reinterpret_cast<T_BASE*>(newArray), dims.data(), dims.size(), 0);
     }
 
 

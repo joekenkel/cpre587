@@ -23,21 +23,16 @@ namespace ML {
 
             // Free all layers
             template<typename T>
-            void clearLayers();
+            void freeLayers();
 
             // Getter Functions
             const std::size_t getNumLayers() const { return layers.size(); }
-            // const bool getCheckFinal() const { return checkFinal; }
-            // const bool getCheckEachLayer() const { return checkEachLayer; }
 
+            // Add a layer to the model
             void addLayer(Layer* l) { layers.push_back(l); }
-            // void setCheckFinal(bool val) { checkFinal = val; }
-            // void setCheckEachLayer(bool val) { checkEachLayer = val; }
 
         private:
             std::vector<Layer*> layers;
-            // bool checkFinal;
-            // bool checkEachLayer;
     };
 
     // Allocate the internal output buffers for each layer in the model
@@ -50,22 +45,27 @@ namespace ML {
                 case Layer::LayerType::CONVOLUTIONAL:
                     ((ConvolutionalLayer*) layers[i])->allocateLayer<T>();
                     break;
-                // case Layer::LayerType::DENSE:
+                case Layer::LayerType::DENSE:
                 //     ((DenseLayer*) layers[i])->allocateLayer<T>();
                 //     break;
-                // case Layer::LayerType::SOFTMAX:
+                case Layer::LayerType::SOFTMAX:
                 //     ((SoftmaxLayer*) layers[i])->allocateLayer<T>();
                 //     break;
-                // case Layer::LayerType::MAX_POOLING:
+                case Layer::LayerType::MAX_POOLING:
                 //     ((MaxPoolingLayer*) layers[i])->allocateLayer<T>();
                 //     break;
+                case Layer::LayerType::NONE:
+                    [[fallthrough]];
+                default:
+                    assert(false && "Cannot allocate layer of type none");
+                    break;
             }
         }
     }
 
     // Free all layers in the model
     template<typename T>
-    void Model::clearLayers() {
+    void Model::freeLayers() {
         // Free all of the layer buffers first
         // Free the internal output buffers for each layer in the model
         for (std::size_t i = 0; i < layers.size(); i++) {
@@ -75,15 +75,20 @@ namespace ML {
                 case Layer::LayerType::CONVOLUTIONAL:
                     ((ConvolutionalLayer*) layers[i])->freeLayer<T>();
                     break;
-                // case Layer::LayerType::DENSE:
+                case Layer::LayerType::DENSE:
                 //     ((DenseLayer*) layers[i])->freeLayer<T>();
                 //     break;
-                // case Layer::LayerType::SOFTMAX:
+                case Layer::LayerType::SOFTMAX:
                 //     ((SoftmaxLayer*) layers[i])->freeLayer<T>();
                 //     break;
-                // case Layer::LayerType::MAX_POOLING:
+                case Layer::LayerType::MAX_POOLING:
                 //     ((MaxPoolingLayer*) layers[i])->freeLayer<T>();
                 //     break;
+                case Layer::LayerType::NONE:
+                    [[fallthrough]];
+                default:
+                    assert(false && "Cannot clear layer of type none");
+                    break;
             }
         }
 
