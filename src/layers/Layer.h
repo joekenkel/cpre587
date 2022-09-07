@@ -184,7 +184,7 @@ namespace ML {
     // Compare within an Epsilon to ensure layer datas are similar within reason
     template<typename T, typename T_EP = float>
     float LayerData::compareWithin(const LayerData& other, const T_EP epsilon) const {
-        return epsilon < compare<T>(other);
+        return epsilon > compare<T>(other);
     }
 
     // Allocate the layer output buffer
