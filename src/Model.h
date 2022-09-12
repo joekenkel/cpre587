@@ -46,8 +46,8 @@ namespace ML {
                     ((ConvolutionalLayer*) layers[i])->allocateLayer<T>();
                     break;
                 case Layer::LayerType::DENSE:
-                //     ((DenseLayer*) layers[i])->allocateLayer<T>();
-                //     break;
+                    ((DenseLayer*) layers[i])->allocateLayer<T>();
+                    break;
                 case Layer::LayerType::SOFTMAX:
                 //     ((SoftmaxLayer*) layers[i])->allocateLayer<T>();
                 //     break;
@@ -76,8 +76,8 @@ namespace ML {
                     ((ConvolutionalLayer*) layers[i])->freeLayer<T>();
                     break;
                 case Layer::LayerType::DENSE:
-                //     ((DenseLayer*) layers[i])->freeLayer<T>();
-                //     break;
+                    ((DenseLayer*) layers[i])->freeLayer<T>();
+                    break;
                 case Layer::LayerType::SOFTMAX:
                 //     ((SoftmaxLayer*) layers[i])->freeLayer<T>();
                 //     break;

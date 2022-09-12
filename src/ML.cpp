@@ -55,12 +55,24 @@ Model buildToyModel(const fs::path modelPath) {
     // --- Conv 2: L3 ---
     // Input shape: 28x28x32
     // Output shape: 26x26x64
+    LayerParams conv2_inDataParam(sizeof(fp32), {28, 28, 32});
+    LayerParams conv2_outDataParam(sizeof(fp32), {26, 26, 32});
+    LayerParams conv2_weightParam(sizeof(fp32), {2, 2, 32, 64}, modelPath / "conv2_weights.bin");
+    LayerParams conv2_biasParam(sizeof(fp32), {64}, modelPath / "conv2_biases.bin");
 
+    ConvolutionalLayer* conv2 = new ConvolutionalLayer(conv2_inDataParam, conv2_outDataParam, conv2_weightParam, conv2_biasParam);
+    model.addLayer(conv2);
 
     // --- Conv 3: L4 ---
     // Input shape: 26x26x64
     // Output shape: 24x24x64
+    LayerParams conv3_inDataParam(sizeof(fp32), {26, 26, 64});
+    LayerParams conv3_outDataParam(sizeof(fp32), {24, 24, 64});
+    LayerParams conv3_weightParam(sizeof(fp32), {3, 3, 64, 64}, modelPath / "conv3_weights.bin");
+    LayerParams conv3_biasParam(sizeof(fp32), {64}, modelPath / "conv3_biases.bin");
 
+    ConvolutionalLayer* conv3 = new ConvolutionalLayer(conv3_inDataParam, conv3_outDataParam, conv3_weightParam, conv3_biasParam);
+    model.addLayer(conv3);
 
     // --- MPL 1: L5---
     // Input shape: 24x24x64
@@ -70,12 +82,24 @@ Model buildToyModel(const fs::path modelPath) {
     // --- Conv 4: L6 ---
     // Input shape: 12x12x64
     // Output shape: 10x10x64
+    LayerParams conv4_inDataParam(sizeof(fp32), {12, 12, 64});
+    LayerParams conv4_outDataParam(sizeof(fp32), {10, 10, 64});
+    LayerParams conv4_weightParam(sizeof(fp32), {3, 3, 64, 64}, modelPath / "conv4_weights.bin");
+    LayerParams conv4_biasParam(sizeof(fp32), {64}, modelPath / "conv4_biases.bin");
 
+    ConvolutionalLayer* conv4 = new ConvolutionalLayer(conv4_inDataParam, conv4_outDataParam, conv4_weightParam, conv4_biasParam);
+    model.addLayer(conv4);
 
     // --- Conv 5: L7 ---
     // Input shape: 10x10x64
     // Output shape: 8x8x128
+    LayerParams conv5_inDataParam(sizeof(fp32), {10, 10, 64});
+    LayerParams conv5_outDataParam(sizeof(fp32), {8, 8, 128});
+    LayerParams conv5_weightParam(sizeof(fp32), {3, 3, 64, 128}, modelPath / "conv5_weights.bin");
+    LayerParams conv5_biasParam(sizeof(fp32), {128}, modelPath / "conv5_biases.bin");
 
+    ConvolutionalLayer* conv5 = new ConvolutionalLayer(conv5_inDataParam, conv5_outDataParam, conv5_weightParam, conv5_biasParam);
+    model.addLayer(conv5);
 
     // --- MPL 2: L8 ---
     // Input shape: 8x8x128
@@ -90,11 +114,24 @@ Model buildToyModel(const fs::path modelPath) {
     // --- Dense 0: L10 ---
     // Input shape: 2048
     // Output shape: 256
+    LayerParams dense0_inDataParam(sizeof(fp32), {2048});
+    LayerParams dense0_outDataParam(sizeof(fp32), {256});
+    LayerParams dense0_weightParam(sizeof(fp32), {2048, 256}, modelPath / "dense0_weights.bin");
+    LayerParams dense0_biasParam(sizeof(fp32), {256}, modelPath / "dense0_biases.bin");
 
+    DenseLayer* dense0 = new DenseLayer(dense0_inDataParam, dense0_outDataParam, dense0_weightParam, dense0_biasParam);
+    model.addLayer(dense0);
 
     // --- Dense 1: L11 ---
     // Input shape: 256
     // Output shape: 200
+    LayerParams dense1_inDataParam(sizeof(fp32), {256});
+    LayerParams dense1_outDataParam(sizeof(fp32), {200});
+    LayerParams dense1_weightParam(sizeof(fp32), {256, 200}, modelPath / "dense1_weights.bin");
+    LayerParams dense1_biasParam(sizeof(fp32), {200}, modelPath / "dense1_biases.bin");
+
+    DenseLayer* dense1 = new DenseLayer(dense1_inDataParam, dense1_outDataParam, dense1_weightParam, dense1_biasParam);
+    model.addLayer(dense1);
 
 
     // --- Softmax 0: L12 ---

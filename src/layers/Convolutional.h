@@ -47,5 +47,4 @@ namespace ML {
             LayerParams biasParam;
             LayerData biasData;
     };
-
 }

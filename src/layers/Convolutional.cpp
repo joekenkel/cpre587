@@ -58,11 +58,8 @@ namespace ML {
         //predeclair variables
         int n,m,p,q,c,r,s;
 
-        //Debugging Var - var[z][y][x]
-        int input_x, input_y, input_z;
-        int filter_x, filter_y, filter_z;
-        int output_x, output_y, output_z;
-        // int input_value, filter_value, bias_value;
+        //Debugging Var - var[x][y][z]
+        int input_x, input_y;
 
 
         for(n = 0; n < batch_size; n++){
@@ -73,43 +70,14 @@ namespace ML {
                             for(r = 0; r < filter_height; r++){
                                 for(s = 0; s < filter_width; s++){
                                     
-                                    input_x = step_size*q + s;
+                                    input_x = step_size * q + s;
                                     input_y = step_size * p + r;
-                                    input_z = c;
 
-                                    filter_x = s;
-                                    filter_y = r; 
-                                    filter_z = c;
-                                    
-                                    output_x = q;
-                                    output_y = p;
-                                    output_z = m;
-
-                                    // if(debug){
-                                    //     std::cout << "input_x = " << input_x << ", input_y = " << input_y << ", input_z = " << input_z << "\n"
-                                    //             << "filter_x = " << filter_x << ", filter_y = " << filter_y << ", filter_z = " << filter_z << "\n"
-                                    //             << "output_x = " << output_x << ", output_y = " << output_y << ", output_z = " << output_z << "\n"
-                                    //             << "\n";
-
-                                    //     std::cout << "Starting to find input_value \n";
-                                    //     input_value = convInputData[input_x][input_y][input_z];
-
-                                    //     std::cout << "Starting to find filter_value \n";
-                                    //     filter_value = convWeightData[filter_x][filter_y][filter_z][m];
-
-                                    //     std::cout << "Starting to find bias_value \n";
-                                    //     bias_value = convBiasData[m];
-                                    // }
-
-                                    
-
-
-                                    convOutputData[output_x][output_y][output_z] = convInputData[input_x][input_y][input_z] *
-                                                                                   convWeightData[filter_x][filter_y][filter_z][m] +
-                                                                                   convBiasData[m];
+                                    convOutputData[q][p][m] = convInputData[input_x][input_y][c] * convWeightData[s][r][c][m];
                                 }
                             }
                         } 
+                        convOutputData[q][p][m] += convBiasData[m];
                     }
                 } 
             }
