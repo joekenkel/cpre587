@@ -23,21 +23,28 @@ Model buildToyModel(const fs::path modelPath) {
     // --- Conv 0: L0 ---
     // Input shape: 64x64x3
     // Output shape: 60x60x32
-    // LayerParams conv1_inDataParam = getParams<fp32, "", 64, 64, 3>();
-    // LayerParams conv1_outDataParam = getParams<fp32, "", 60, 60, 32>();
-    // LayerParams conv1_weightParam = getParams<fp32, "", 5, 5, 3, 32>();
-    // LayerParams conv1_biasParam = getParams<fp32, "", 32>();
-    LayerParams conv1_inDataParam(sizeof(fp32), {64, 64, 3});
-    LayerParams conv1_outDataParam(sizeof(fp32), {60, 60, 32});
-    LayerParams conv1_weightParam(sizeof(fp32), {5, 5, 3, 32}, modelPath / "conv1_weights.bin");
-    LayerParams conv1_biasParam(sizeof(fp32), {32}, modelPath / "conv1_biases.bin");
+    // LayerParams conv0_inDataParam = getParams<fp32, "", 64, 64, 3>();
+    // LayerParams conv0_outDataParam = getParams<fp32, "", 60, 60, 32>();
+    // LayerParams conv0_weightParam = getParams<fp32, "", 5, 5, 3, 32>();
+    // LayerParams conv0_biasParam = getParams<fp32, "", 32>();
+    LayerParams conv0_inDataParam(sizeof(fp32), {64, 64, 3});
+    LayerParams conv0_outDataParam(sizeof(fp32), {60, 60, 32});
+    LayerParams conv0_weightParam(sizeof(fp32), {5, 5, 3, 32}, modelPath / "conv0_weights.bin");
+    LayerParams conv0_biasParam(sizeof(fp32), {32}, modelPath / "conv0_biases.bin");
 
-    ConvolutionalLayer* conv1 = new ConvolutionalLayer(conv1_inDataParam, conv1_outDataParam, conv1_weightParam, conv1_biasParam);
-    model.addLayer(conv1);
+    ConvolutionalLayer* conv0 = new ConvolutionalLayer(conv0_inDataParam, conv0_outDataParam, conv0_weightParam, conv0_biasParam);
+    model.addLayer(conv0);
 
     // --- Conv 1: L1 ---
     // Input shape: 60x60x32
     // Output shape: 56x56x32
+    LayerParams conv1_inDataParam(sizeof(fp32), {60, 60, 32});
+    LayerParams conv1_outDataParam(sizeof(fp32), {56, 56, 32});
+    LayerParams conv1_weightParam(sizeof(fp32), {5, 5, 32, 32}, modelPath / "conv1_weights.bin");
+    LayerParams conv1_biasParam(sizeof(fp32), {32}, modelPath / "conv1_biases.bin");
+
+    ConvolutionalLayer* conv1 = new ConvolutionalLayer(conv1_inDataParam, conv1_outDataParam, conv1_weightParam, conv1_biasParam);
+    model.addLayer(conv1);
 
 
     // --- MPL 0: L2 ---
